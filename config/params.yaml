@@ -1,0 +1,39 @@
+# Every business assumption of the project lives here, never hard-coded in the
+# notebooks or in src/. If a number below changes, the whole pipeline must be
+# able to re-run without a single code edit.
+
+data:
+  raw_path: "data/raw/bank-additional-full.csv"
+  separator: ";"
+  target_column: "y"
+  positive_label: "yes"
+  # 'duration' is only known AFTER the call ends, so it cannot be used to decide
+  # who to call. Kept here so the leakage decision is explicit and auditable.
+  leakage_columns: ["duration"]
+
+business:
+  # Value of one conversion (a client who subscribes to the term deposit).
+  # Placeholder: replace with a justified figure and document the reasoning in
+  # docs/decisions.md.
+  conversion_value: 100.0
+  # Cost of one contact attempt (agent time, telephony).
+  contact_cost: 5.0
+  currency: "EUR"
+
+capacity:
+  # Number of clients the contact team can call in the campaign window.
+  contacts_available: 3000
+  # Sensitivity analysis grid (multipliers of contacts_available).
+  sensitivity_multipliers: [0.5, 0.8, 1.0, 1.2, 1.5, 2.0]
+
+coverage:
+  # Minimum share of the contact budget that must go to each segment, so no
+  # group is systematically excluded by the policy.
+  segment_column: "job"
+  min_share_per_segment: 0.02
+
+model:
+  random_state: 42
+  test_size: 0.25
+  n_splits: 5
+  calibration_method: "isotonic"

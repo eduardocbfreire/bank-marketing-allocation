@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+
+# Environments / secrets
+.env
+
+# Experiment tracking
+mlruns/
+mlartifacts/
+
+# Generated data and figures
+data/processed/*
+!data/processed/.gitkeep
+outputs/*
+!outputs/.gitkeep
+!outputs/figures/
+outputs/figures/*
+!outputs/figures/.gitkeep
+
+# Personal working notes, not part of the deliverable
+notes/
+
+# OS
+.DS_Store
