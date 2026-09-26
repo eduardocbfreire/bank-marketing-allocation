@@ -24,6 +24,7 @@ outputs/figures/*
 
 # Personal working notes, not part of the deliverable
 notes/
+CLAUDE.local.md
 
 # OS
 .DS_Store

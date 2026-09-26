@@ -1,58 +1,56 @@
 # Contact Allocation Under Capacity Constraint
 
-> **Status: in progress.** The data layer, the business framing and the exploratory analysis are in place. The calibrated propensity model, the allocation policy and the results are still being built. The Answer section below is written last, on purpose.
+> **Status: in progress.** The data layer, the framing and the exploratory analysis are done. The propensity model and the allocation policy are not. Numbers go in the Answer section once there are numbers.
 
-Deciding which clients a capacity-limited contact team should call, using a calibrated propensity model as an input to a constrained optimisation problem rather than as the answer itself.
+Choosing which clients a phone campaign should call when there is not enough capacity to call everyone.
 
 ## Context
 
-A retail bank runs outbound telemarketing campaigns for term deposits. The base is around 41,000 clients and the conversion rate is 11.3%, so most calls end in a no.
+A retail bank sells term deposits over the phone. The base in this dataset is 45,211 clients, and 11.7% of them subscribed.
 
-The binding problem is not accuracy, it is capacity. The contact team can work through a few thousand clients per campaign window, not the whole base. Somebody has to decide who gets called, and today that decision is made by ranking and gut feeling, with no way to say what it costs to be wrong.
+The team making the calls gets through a few thousand clients per campaign, not 45,211. So someone has to pick the list. Today that pick comes from ranking clients on whatever score is available, and nobody can say what a bad pick costs, or which clients never make the list at all.
 
 ## Business question
 
-> Given a fixed contact budget, which subset of clients should we prioritise to maximise the expected value of the campaign, without systematically abandoning any relevant client segment?
+> Given a fixed number of calls, who should be on the list, and what does the campaign earn?
 
-Five questions have to be answered with data, not opinion:
+Underneath that:
 
-1. Does always calling the highest-probability clients actually maximise return?
-2. What happens to expected value if capacity moves by 50% in either direction?
-3. Is any client group being systematically excluded by the policy?
-4. How reliable is the probability the model produces?
-5. Are we prioritising clients who would convert anyway, or clients who convert because of the call?
+- Is the highest-probability list also the highest-value list?
+- What happens to expected value if capacity moves up or down by half?
+- Which client groups does the policy never reach?
+- Can the model's probabilities be read as probabilities, or only as a ranking?
+- How much of the list would have subscribed without the call?
 
 ## Answer
 
-*Analysis in progress.* This section will carry the headline result, the chart comparing the optimised policy against the naive baselines, and the direct answer to each of the five questions above.
+Not yet. The headline number, the comparison against the current approach, and the chart go here.
 
 ## How
 
-Four layers, each one feeding the next. The model is an input to a decision, not the deliverable.
+Four layers, each feeding the next. What comes out at the end is a call list, and the model is one input to it.
 
-| Layer | What it does | Tools |
+| Layer | Job | Tools |
 | --- | --- | --- |
-| Data | Explore and prepare the campaign base | DuckDB, pandas |
-| Predictive | Estimate a **calibrated** conversion probability per client | scikit-learn, MLflow |
-| Expected value | Convert probability into currency, using conversion value and contact cost | pandas |
-| Prescriptive | Choose who to call under capacity and coverage constraints | PuLP |
+| Data | Prepare and explore the campaign base | DuckDB, pandas |
+| Predictive | A calibrated conversion probability per client | scikit-learn, MLflow |
+| Expected value | Probability into currency, using conversion value and call cost | pandas |
+| Prescriptive | Pick the list under capacity and coverage constraints | PuLP |
 
-Two design decisions carry most of the weight.
+The probability has to be calibrated and not merely well ranked, because the optimisation multiplies it by money. If the model says 0.4 for a group that converts at 0.1, the budget goes to the wrong people even though the ranking was fine. That is why the evaluation uses PR-AUC and Brier Score instead of accuracy and ROC-AUC.
 
-**Calibration over ranking.** A model that ranks well can still be badly wrong about the level of the probabilities. Ranking is enough to sort a list, but the optimisation layer multiplies probability by money, so a probability of 0.4 has to mean 40%. Evaluation uses PR-AUC and Brier Score rather than ROC-AUC and accuracy.
+Taking the top k scores is already optimal when every call costs the same and nothing else constrains the list. Once there is a minimum number of calls per segment, the best affordable list stops being the top of the ranking, and choosing it becomes an integer programming problem.
 
-**Optimisation over top-k.** Taking the top k scores is optimal only when every client costs the same and no other constraint exists. Add a minimum coverage per segment, and the best affordable set is no longer the highest-scoring set.
-
-### Repository structure
+### Structure
 
 ```
-├── config/params.yaml      # every business assumption, nothing hard-coded
-├── data/raw/               # bank-additional-full.csv, 41,188 clients
-├── docs/decisions.md       # the decision problem and every technical trade-off
+├── config/params.yaml      # conversion value, call cost, capacity, coverage floors
+├── data/raw/               # bank-full.csv
+├── docs/decisions.md       # what was decided and why
 ├── notebooks/              # exploration and modelling
-├── src/bank_marketing/     # the pipeline as importable, testable functions
+├── src/bank_marketing/     # the pipeline as importable functions
 ├── tests/                  # pytest
-└── outputs/figures/        # charts used in the README
+└── outputs/figures/        # charts used above
 ```
 
 ### Running it
@@ -63,18 +61,20 @@ uv run jupyter lab
 uv run pytest
 ```
 
-### Roadmap
+### Still to do
 
 - [x] Repository, environment, dataset
-- [ ] Exploratory analysis and the decision problem written down in `docs/decisions.md`
-- [ ] Calibrated propensity model, evaluated with PR-AUC and Brier Score
-- [ ] Allocation policy in PuLP, compared against top-k and random, with capacity sensitivity
+- [x] Exploratory analysis, and the decision problem written into `docs/decisions.md`
+- [ ] Calibrated propensity model
+- [ ] Allocation policy in PuLP, against top-k and random baselines, with a capacity sensitivity curve
 - [ ] Modular `src/`, FastAPI endpoint, results in this README
 
-## Known limitation, stated up front
+## What this cannot tell you
 
-The campaign behind this dataset was not randomised. The model therefore measures **propensity**, who is likely to convert, and not the **incremental effect of being called**. A client who would have subscribed anyway looks identical to one who subscribed because of the call. Uplift modelling on a randomised holdout is the natural next step, and the policy should be read with that caveat.
+The campaign behind this data was not randomised. Everyone in it was contacted, so the model learns who subscribes, and not who subscribes **because** of the call. Those are different questions, and only the second one justifies spending on a call. A client who was going to subscribe anyway looks identical here to one who was persuaded.
+
+Separating them needs a randomised holdout and uplift modelling. That is the obvious next version, and until it exists the policy should be read as prioritisation and not as measured impact.
 
 ## Data
 
-Moro, S., Rita, P., and Cortez, P. (2014). *Bank Marketing*. UCI Machine Learning Repository. File `bank-additional-full.csv`, 41,188 records, 20 features, 11.3% conversion rate.
+Moro, S., Rita, P., and Cortez, P. (2014). *Bank Marketing*. UCI Machine Learning Repository. `bank-full.csv`, 45,211 records, 16 features, 11.7% conversion rate.

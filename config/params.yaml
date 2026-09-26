@@ -3,7 +3,7 @@
 # able to re-run without a single code edit.
 
 data:
-  raw_path: "data/raw/bank-additional-full.csv"
+  raw_path: "data/raw/bank-full.csv"
   separator: ";"
   target_column: "y"
   positive_label: "yes"
