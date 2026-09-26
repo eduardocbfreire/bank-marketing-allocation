@@ -21,6 +21,8 @@ dependencies = [
     # serving layer
     "fastapi>=0.115",
     "uvicorn>=0.30",
+    "graphviz>=0.21",
+    "causal-learn>=0.1.4.8",
 ]
 
 [project.optional-dependencies]
